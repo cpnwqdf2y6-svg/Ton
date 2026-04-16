@@ -11,7 +11,11 @@ patterns=(
 )
 
 for pattern in "${patterns[@]}"; do
-  if rg -nI --hidden --glob '!.git' -e "$pattern" .; then
+  if rg -nI \
+    --hidden \
+    --glob '!.git' \
+    --glob '!*.dmg' \
+    -e "$pattern" .; then
     echo "Potential secret detected for pattern: $pattern" >&2
     exit 1
   fi
