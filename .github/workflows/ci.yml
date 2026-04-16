@@ -3,6 +3,10 @@ name: CI
 on:
   push:
   pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
 
 jobs:
   validate:
@@ -11,8 +15,13 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Install ripgrep
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ripgrep
+
       - name: Repository checks
-        run: ./scripts/ci-check.sh
+        run: bash ./scripts/ci-check.sh
 
       - name: Security regression scan
-        run: ./scripts/security-scan.sh
+        run: bash ./scripts/security-scan.sh
