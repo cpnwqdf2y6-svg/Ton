@@ -1,0 +1,47 @@
+{
+  "status": "V17_RUN_TEST_STATIC_PASS",
+  "source": "ThanyawitCustomer_iPad_Xcode_v16_STORED_PROPERTY_FIX.zip",
+  "output": "ThanyawitCustomer_iPad_Xcode_v17_RUN_TEST.zip",
+  "note": "ตรวจแบบ static test ใน sandbox; Xcode/iOS SDK build จริงต้องกด Run บน Mac",
+  "fix_applied": [
+    "Models.swift: var calendar -> let calendar"
+  ],
+  "checks": {
+    "swift_file_count": 18,
+    "xcodeproj_exists": true,
+    "bundle_v17": true,
+    "display_v17": true,
+    "generated_infoplist_yes": true,
+    "private_let_in_extension_remaining": [],
+    "var_calendar_warning_remaining": [],
+    "required_buttons_tokens": {
+      "ContentView.swift": {
+        "สั่งงานเอกสาร": true,
+        "FormsCommandView()": true,
+        "เพิ่ม/แก้ฐานลูกค้า": true,
+        "รับส่งไปรษณีย์": true,
+        "Timeline ภาษี": true
+      },
+      "FormsCommandView.swift": {
+        "ไปแจ้งหนี้": true,
+        "ใบแจ้งหนี้": true,
+        "ใบกำกับภาษี": true,
+        "ใบส่งมอบงาน": true,
+        "ออกเอกสารครบชุด": true,
+        "บันทึกสำเนาเข้า Document Control": true
+      },
+      "CustomersView.swift": {
+        "เพิ่มลูกค้าใหม่": true,
+        "แก้ไขข้อมูลลูกค้านี้": true,
+        "เลขผู้เสียภาษี": true,
+        "เลขสัญญา": true,
+        "วันที่สัญญา": true
+      },
+      "DocumentControlView.swift": {
+        "กดอัปเดตสถานะเอกสาร": true,
+        "ต้องกด": true,
+        "เช็กออนไลน์": true
+      }
+    }
+  }
+}

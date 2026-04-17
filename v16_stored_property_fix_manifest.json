@@ -1,0 +1,24 @@
+{
+  "source": "ThanyawitCustomer_iPad_Xcode_v15_RECHECKED.zip",
+  "fixed_files": [
+    "CustomerStore.swift",
+    "V7StoreExtension.swift"
+  ],
+  "stored_properties_found": [
+    "CustomerStore.swift: private let billingKey = \"thanyawit.billing.v10\"",
+    "CustomerStore.swift: private let customersKey = \"thanyawit.customers.v10\"",
+    "CustomerStore.swift: private let servicePeriodKey = \"thanyawit.servicePeriod.v10\"",
+    "CustomerStore.swift: private let documentDateKey = \"thanyawit.documentDate.v10\""
+  ],
+  "checks": {
+    "xcodeproj_exists": true,
+    "app_source_exists": true,
+    "bundle_v16": true,
+    "display_v16": true,
+    "remaining_private_let_in_extensions": [],
+    "fixed_files": [
+      "CustomerStore.swift",
+      "V7StoreExtension.swift"
+    ]
+  }
+}

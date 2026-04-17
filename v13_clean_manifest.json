@@ -1,0 +1,11 @@
+{
+  "status": "V13_CLEAN_INSTALL_RECHECKED",
+  "checks": {
+    "generated_infoplist_yes": true,
+    "no_infoplist_file_setting": false,
+    "bundle_v13": true,
+    "display_v13": true,
+    "orientation_iPad": true
+  },
+  "note": "Removed all INFOPLIST_FILE assignments to force generated Info.plist."
+}

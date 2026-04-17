@@ -1,0 +1,20 @@
+{
+  "source_zip": "ThanyawitCustomer_iPad_Xcode_v13_CLEAN_INSTALL.zip",
+  "output": "ThanyawitCustomer_iPad_Xcode_v14_COMPILE_FIX.zip",
+  "bundle_id": "com.wongsaphat.thanyawitcustomer.v14",
+  "display_name": "Thanyawit V14",
+  "fix": "Add @MainActor annotation to SwiftUI views that call PDF-generating CustomerStore methods.",
+  "patched_files": [
+    "CustomerStore.swift",
+    "ExportView.swift",
+    "FormsCommandView.swift",
+    "V7StoreExtension.swift"
+  ],
+  "checks": {
+    "xcodeproj": true,
+    "app_source": true,
+    "bundle_v14": true,
+    "display_v14": true,
+    "has_mainactor_in_patched": false
+  }
+}

@@ -1,0 +1,31 @@
+{
+  "status": "checked",
+  "summary": "ZIP เปิดได้ โครง Xcode project ครบ และแก้ access issue ที่อาจทำให้ build fail แล้ว",
+  "fixes_applied": [
+    "formatNumber เปลี่ยนจาก private เป็น internal เพื่อให้ V7StoreExtension ใช้ได้",
+    "renderPDF เปลี่ยนจาก private เป็น internal เพื่อให้ V7StoreExtension ใช้ได้"
+  ],
+  "notes": [
+    "เครื่องหมาย \\( ... ) ในไฟล์ Swift เป็น string interpolation ปกติ ไม่ใช่ error",
+    "ยังไม่ได้ build ด้วย Xcode ใน sandbox นี้ เพราะไม่มี iOS SDK/device signing แต่ตรวจโครงสร้างและจุดเสี่ยงหลักแล้ว"
+  ],
+  "swift_file_count": 16,
+  "required_files_present": [
+    "BillingView.swift",
+    "ContentView.swift",
+    "CustomerStore.swift",
+    "CustomersView.swift",
+    "DashboardView.swift",
+    "DocumentControlView.swift",
+    "ExportView.swift",
+    "Formatters.swift",
+    "LogoView.swift",
+    "Models.swift",
+    "PrecheckView.swift",
+    "TaxTimelineView.swift",
+    "ThanyawitCustomerApp.swift",
+    "TrackingService.swift",
+    "TrackingSettingsView.swift",
+    "V7StoreExtension.swift"
+  ]
+}

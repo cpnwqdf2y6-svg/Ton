@@ -1,0 +1,88 @@
+{
+  "source": "ThanyawitCustomer_iPad_Xcode_v14_COMPILE_FIX.zip",
+  "issues_found": [],
+  "fixes_applied": [
+    "เปลี่ยน Bundle ID / Display Name เป็น V15 เพื่อกัน iPad เปิดตัวเก่า"
+  ],
+  "checks": {
+    "swift_file_count": 18,
+    "swift_files": [
+      "BillingView.swift",
+      "ContentView.swift",
+      "CustomerStore.swift",
+      "CustomersView.swift",
+      "DashboardView.swift",
+      "DocumentControlView.swift",
+      "ExportView.swift",
+      "Formatters.swift",
+      "FormsCommandView.swift",
+      "LogoView.swift",
+      "MasterDataView.swift",
+      "Models.swift",
+      "PrecheckView.swift",
+      "TaxTimelineView.swift",
+      "ThanyawitCustomerApp.swift",
+      "TrackingService.swift",
+      "TrackingSettingsView.swift",
+      "V7StoreExtension.swift"
+    ],
+    "required_tokens": {
+      "ContentView.swift": {
+        "สั่งงานเอกสาร": true,
+        "FormsCommandView()": true,
+        "เพิ่ม/แก้ฐานลูกค้า": true,
+        "รับส่งไปรษณีย์": true,
+        "Timeline ภาษี": true
+      },
+      "FormsCommandView.swift": {
+        "ไปแจ้งหนี้": true,
+        "ใบแจ้งหนี้": true,
+        "ใบกำกับภาษี": true,
+        "ใบส่งมอบงาน": true,
+        "ออกเอกสารครบชุด": true,
+        "บันทึกสำเนาเข้า Document Control": true
+      },
+      "V7StoreExtension.swift": {
+        "pdfForInvoiceForms": true,
+        "pdfForTaxInvoiceForms": true,
+        "pdfForDeliveryForms": true,
+        "pdfForRealForms": true
+      },
+      "CustomersView.swift": {
+        "เพิ่มลูกค้าใหม่": true,
+        "แก้ไขข้อมูลลูกค้านี้": true,
+        "เลขผู้เสียภาษี": true,
+        "เลขสัญญา": true,
+        "วันที่สัญญา": true
+      },
+      "DocumentControlView.swift": {
+        "กดอัปเดตสถานะเอกสาร": true,
+        "ต้องกด": true,
+        "เช็กออนไลน์": true
+      }
+    },
+    "xcodeproj_exists": true,
+    "app_source_exists": true,
+    "bundle_v15": true,
+    "display_v15": true,
+    "generated_infoplist_yes": true,
+    "no_custom_infoplist_file_assignment": false,
+    "mainactor_view_files": [
+      "CustomerStore.swift",
+      "ExportView.swift",
+      "FormsCommandView.swift",
+      "V7StoreExtension.swift"
+    ],
+    "actor_check_for_pdf_call_files": {
+      "CustomerStore.swift": true,
+      "ExportView.swift": true,
+      "FormsCommandView.swift": true,
+      "V7StoreExtension.swift": false
+    },
+    "infoplist_matches_after": [
+      "\t\t\t\tGENERATE_INFOPLIST_FILE = YES;",
+      "\t\t\t\tGENERATE_INFOPLIST_FILE = YES;"
+    ]
+  },
+  "final_patch": "Removed remaining INFOPLIST_FILE assignment lines from project.pbxproj"
+}

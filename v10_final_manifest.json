@@ -1,0 +1,51 @@
+{
+  "source_zip": "ThanyawitCustomer_iPad_Xcode_v9_checked.zip",
+  "status": "V10_FINAL_RECHECK_CREATED",
+  "bundle_id": "com.wongsaphat.thanyawitcustomer.v10",
+  "display_name": "ธัญญวิชญ์ V10",
+  "validation": {
+    "ContentView.swift": {
+      "เพิ่ม/แก้ฐานลูกค้า": true,
+      "รับส่งไปรษณีย์": true,
+      "Timeline ภาษี": true,
+      "ตั้งค่าขนส่ง": true
+    },
+    "CustomersView.swift": {
+      "เพิ่มลูกค้าใหม่ / เพิ่มข้อมูล": true,
+      "แก้ไขข้อมูลลูกค้านี้": true,
+      "ข้อมูลออกเอกสาร": true
+    },
+    "MasterDataView.swift": {
+      "เพิ่มข้อมูลลูกค้าใหม่": true,
+      "รีเซ็ตฐานในเครื่อง": true
+    },
+    "DashboardView.swift": {
+      "V10 FULL EDIT": true,
+      "ถ้าคุณยังเห็นหน้าตาเดิม": true
+    },
+    "CustomerStore.swift": {
+      "resetLocalCustomersToBundledData": true,
+      "thanyawit.customers.v10": true
+    }
+  },
+  "swift_files": [
+    "BillingView.swift",
+    "ContentView.swift",
+    "CustomerStore.swift",
+    "CustomersView.swift",
+    "DashboardView.swift",
+    "DocumentControlView.swift",
+    "ExportView.swift",
+    "Formatters.swift",
+    "LogoView.swift",
+    "MasterDataView.swift",
+    "Models.swift",
+    "PrecheckView.swift",
+    "TaxTimelineView.swift",
+    "ThanyawitCustomerApp.swift",
+    "TrackingService.swift",
+    "TrackingSettingsView.swift",
+    "V7StoreExtension.swift"
+  ],
+  "important": "ต้องเห็นคำว่า V10 FULL EDIT และเมนู เพิ่ม/แก้ฐานลูกค้า ถ้าไม่เห็นคือยังรันแอปเก่า"
+}

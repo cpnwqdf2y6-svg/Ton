@@ -1,0 +1,66 @@
+{
+  "source_zip": "ThanyawitCustomer_iPad_Xcode_v10_FINAL_RECHECK.zip",
+  "status": "V11_FORMS_COMMAND_CREATED",
+  "bundle_id": "com.wongsaphat.thanyawitcustomer.v11",
+  "display_name": "ธัญญวิชญ์ V11",
+  "validation": {
+    "ContentView.swift": {
+      "สั่งงานเอกสาร": true,
+      "FormsCommandView()": true,
+      "ธัญญวิชญ์ V11": true
+    },
+    "FormsCommandView.swift": {
+      "ไปใบแจ้งหนี้": true,
+      "ไปใบกำกับภาษี": true,
+      "ไปใบส่งมอบงาน": true,
+      "บันทึกสำเนาเข้า Document Control": true
+    },
+    "ExportView.swift": {
+      "Export ใบแจ้งหนี้ PDF": true,
+      "Export ใบกำกับภาษี PDF": true,
+      "Export ใบส่งมอบงาน PDF": true
+    },
+    "V7StoreExtension.swift": {
+      "pdfForInvoiceForms()": true,
+      "pdfForTaxInvoiceForms()": true,
+      "pdfForDeliveryForms()": true
+    },
+    "DashboardView.swift": {
+      "V11 FULL EDIT + FORMS COMMAND": true
+    }
+  },
+  "swift_files": [
+    "BillingView.swift",
+    "ContentView.swift",
+    "CustomerStore.swift",
+    "CustomersView.swift",
+    "DashboardView.swift",
+    "DocumentControlView.swift",
+    "ExportView.swift",
+    "Formatters.swift",
+    "FormsCommandView.swift",
+    "LogoView.swift",
+    "MasterDataView.swift",
+    "Models.swift",
+    "PrecheckView.swift",
+    "TaxTimelineView.swift",
+    "ThanyawitCustomerApp.swift",
+    "TrackingService.swift",
+    "TrackingSettingsView.swift",
+    "V7StoreExtension.swift"
+  ],
+  "summary": {
+    "missing_before": [
+      "ไม่มีปุ่มสั่งงานตรงไป ใบแจ้งหนี้ / ใบส่งมอบงาน / ใบกำกับภาษี",
+      "เมนูส่งออกมีของ แต่ลึกและไม่ชัด"
+    ],
+    "added_now": [
+      "เมนู สั่งงานเอกสาร",
+      "ปุ่มไปใบแจ้งหนี้",
+      "ปุ่มไปใบกำกับภาษี",
+      "ปุ่มไปใบส่งมอบงาน",
+      "ปุ่มออกเอกสารครบชุด",
+      "ปุ่มบันทึกสำเนาเข้า Document Control"
+    ]
+  }
+}
