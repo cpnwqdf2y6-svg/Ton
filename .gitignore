@@ -1,8 +1,8 @@
 .DS_Store
-*.xcuserstate
 xcuserdata/
+*.xcuserstate
 DerivedData/
 build/
 *.xcappdata
-*.dmg
 *.zip
+*.dmg
