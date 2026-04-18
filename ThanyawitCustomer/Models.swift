@@ -15,6 +15,7 @@ struct Customer: Identifiable, Codable, Hashable {
     var contractNo: String
     var contractDate: String
     var projectNo: String
+    var contractControlNo: String
     var documentName: String
     var attentionName: String
     var agencyAddress: String
@@ -32,7 +33,7 @@ struct Customer: Identifiable, Codable, Hashable {
 
     enum CodingKeys: String, CodingKey {
         case id, customerCode, agencyName, agencyShort, agencyType, customerGroup, districtName, provinceName
-        case procurementMethod, projectType, taxId, contractNo, contractDate, projectNo, documentName
+        case procurementMethod, projectType, taxId, contractNo, contractDate, projectNo, contractControlNo, documentName
         case attentionName, agencyAddress, baseRevenue2569, baseWeight2569, unitRateDefault, vatPercent
         case whtPercent, readiness, missingItems, internalNote, lineId, documentWorkCompletedAt, lastLineSentAt
     }
@@ -52,6 +53,7 @@ struct Customer: Identifiable, Codable, Hashable {
         contractNo: String,
         contractDate: String,
         projectNo: String,
+        contractControlNo: String,
         documentName: String,
         attentionName: String,
         agencyAddress: String,
@@ -81,6 +83,7 @@ struct Customer: Identifiable, Codable, Hashable {
         self.contractNo = contractNo
         self.contractDate = contractDate
         self.projectNo = projectNo
+        self.contractControlNo = contractControlNo
         self.documentName = documentName
         self.attentionName = attentionName
         self.agencyAddress = agencyAddress
@@ -113,6 +116,7 @@ struct Customer: Identifiable, Codable, Hashable {
         contractNo = try c.decodeIfPresent(String.self, forKey: .contractNo) ?? ""
         contractDate = try c.decodeIfPresent(String.self, forKey: .contractDate) ?? ""
         projectNo = try c.decodeIfPresent(String.self, forKey: .projectNo) ?? ""
+        contractControlNo = try c.decodeIfPresent(String.self, forKey: .contractControlNo) ?? ""
         documentName = try c.decodeIfPresent(String.self, forKey: .documentName) ?? agencyName
         attentionName = try c.decodeIfPresent(String.self, forKey: .attentionName) ?? ""
         agencyAddress = try c.decodeIfPresent(String.self, forKey: .agencyAddress) ?? ""
@@ -145,6 +149,7 @@ struct Customer: Identifiable, Codable, Hashable {
             contractNo: "",
             contractDate: "",
             projectNo: "",
+            contractControlNo: "",
             documentName: "",
             attentionName: "",
             agencyAddress: "",
@@ -188,6 +193,7 @@ struct BillingLine: Identifiable, Codable, Hashable {
     var weightTonFromTable: Double = 0
     var ocrTotalTon: Double = 0
     var ocrDetectedWeight: Double = 0
+    var weightParserAudit: String = ""
     var billingApprovedAt: String = ""
     var billingApprovalNote: String = ""
 
@@ -198,7 +204,7 @@ struct BillingLine: Identifiable, Codable, Hashable {
         case weightSlipOCRText, weightSlipOCRCheckedAt, weightSlipAgencyMatched, weightSlipTotalWeightMatched
         case weightSlipAgencyCheckNote, weightSlipWeightCheckNote
         case weightTonFromTable, ocrTotalTon
-        case ocrDetectedWeight, billingApprovedAt, billingApprovalNote
+        case ocrDetectedWeight, weightParserAudit, billingApprovedAt, billingApprovalNote
     }
 
     init(
@@ -226,6 +232,7 @@ struct BillingLine: Identifiable, Codable, Hashable {
         weightTonFromTable: Double = 0,
         ocrTotalTon: Double = 0,
         ocrDetectedWeight: Double = 0,
+        weightParserAudit: String = "",
         billingApprovedAt: String = "",
         billingApprovalNote: String = ""
     ) {
@@ -253,6 +260,7 @@ struct BillingLine: Identifiable, Codable, Hashable {
         self.weightTonFromTable = weightTonFromTable
         self.ocrTotalTon = ocrTotalTon
         self.ocrDetectedWeight = ocrDetectedWeight
+        self.weightParserAudit = weightParserAudit
         self.billingApprovedAt = billingApprovedAt
         self.billingApprovalNote = billingApprovalNote
     }
@@ -285,6 +293,7 @@ struct BillingLine: Identifiable, Codable, Hashable {
         let legacyOCR = try c.decodeIfPresent(Double.self, forKey: .ocrDetectedWeight) ?? 0
         ocrTotalTon = decodedOCRTotal ?? legacyOCR
         ocrDetectedWeight = legacyOCR == 0 ? ocrTotalTon : legacyOCR
+        weightParserAudit = try c.decodeIfPresent(String.self, forKey: .weightParserAudit) ?? ""
         billingApprovedAt = try c.decodeIfPresent(String.self, forKey: .billingApprovedAt) ?? ""
         billingApprovalNote = try c.decodeIfPresent(String.self, forKey: .billingApprovalNote) ?? ""
     }

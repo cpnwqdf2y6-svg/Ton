@@ -460,6 +460,12 @@ struct BillingLineView: View {
                             .textSelection(.enabled)
                             .frame(maxWidth: .infinity, alignment: .leading)
                     }
+                    DisclosureGroup("Parser audit (ตัดสินใจแต่ละบรรทัด)") {
+                        Text(line.weightParserAudit.isEmpty ? "ยังไม่มี parser audit payload" : line.weightParserAudit)
+                            .font(.caption2)
+                            .textSelection(.enabled)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                    }
                 } else if !line.weightSlipImageFilename.isEmpty {
                     Text("มีภาพใบชั่งแล้ว แต่ยังไม่ได้ตรวจ OCR")
                         .font(.caption)

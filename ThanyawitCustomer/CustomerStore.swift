@@ -22,7 +22,7 @@ final class CustomerStore: ObservableObject {
     private var documentDateKey: String { "thanyawit.documentDate.v10" }
     private var monthlyProfitRecordsKey: String { "thanyawit.monthlyProfitRecords.v1" }
     private var bundledCustomersVersionKey: String { "thanyawit.customers.bundleVersion.v1" }
-    private let bundledCustomersVersion = 20260418
+    private let bundledCustomersVersion = 20260419
     private let autoWeightEvidenceNotes: Set<String> = ["แนบภาพใบชั่งแล้ว", "แนบเอกสารใบชั่ง PDF แล้ว"]
 
     init() {
@@ -155,8 +155,25 @@ final class CustomerStore: ObservableObject {
             let content = try String(contentsOf: url, encoding: .utf8)
             let rows = parseCSVRows(content)
             guard let header = rows.first else { return [] }
-            let headerIndex = Dictionary(uniqueKeysWithValues: header.enumerated().map { index, value in
-                (normalizeCSVHeader(value), index)
+            let cleanedHeader = header.map { $0.replacingOccurrences(of: "\u{FEFF}", with: "").trimmingCharacters(in: .whitespacesAndNewlines) }
+            let requiredHeaders = [
+                "customer_code",
+                "agency_name",
+                "customer_group",
+                "district_name",
+                "tax_id",
+                "contract_no",
+                "contract_date",
+                "เลขที่โครงการ",
+                "เลขคุมสัญญา",
+                "agency_address"
+            ]
+            guard requiredHeaders.allSatisfy({ cleanedHeader.contains($0) }) else {
+                assertionFailure("CSV header mismatch: required headers are missing")
+                return []
+            }
+            let headerIndex = Dictionary(uniqueKeysWithValues: cleanedHeader.enumerated().map { index, value in
+                (value, index)
             })
 
             return rows.dropFirst().compactMap { row -> BundledCustomerCSVRow? in
@@ -184,10 +201,12 @@ final class CustomerStore: ObservableObject {
                     customerCode: customerCode,
                     agencyName: agencyName,
                     customerGroup: value("customer_group"),
-                    districtName: normalizeDistrict(value("district_name")),
+                    districtName: value("district_name"),
                     taxId: value("tax_id"),
                     contractNo: value("contract_no"),
                     contractDate: value("contract_date"),
+                    projectNo: value("เลขที่โครงการ"),
+                    contractControlNo: value("เลขคุมสัญญา"),
                     agencyAddress: value("agency_address"),
                     readiness: readiness,
                     missingItems: missingItems
@@ -218,6 +237,8 @@ final class CustomerStore: ObservableObject {
             customer.taxId = preferredText(row.taxId, customer.taxId)
             customer.contractNo = preferredText(row.contractNo, customer.contractNo)
             customer.contractDate = preferredText(row.contractDate, customer.contractDate)
+            customer.projectNo = preferredText(row.projectNo, customer.projectNo)
+            customer.contractControlNo = preferredText(row.contractControlNo, customer.contractControlNo)
             customer.agencyAddress = preferredText(row.agencyAddress, customer.agencyAddress)
             customer.provinceName = preferredText(inferProvinceName(from: customer.agencyAddress), customer.provinceName)
             customer.readiness = preferredText(row.readiness, customer.readiness)
@@ -272,6 +293,7 @@ final class CustomerStore: ObservableObject {
         merged.contractNo = preferredText(bundled.contractNo, saved.contractNo)
         merged.contractDate = preferredText(bundled.contractDate, saved.contractDate)
         merged.projectNo = preferredText(bundled.projectNo, saved.projectNo)
+        merged.contractControlNo = preferredText(bundled.contractControlNo, saved.contractControlNo)
         merged.documentName = preferredText(bundled.documentName, saved.documentName)
         merged.attentionName = preferredText(bundled.attentionName, saved.attentionName)
         merged.agencyAddress = preferredText(bundled.agencyAddress, saved.agencyAddress)
@@ -306,6 +328,8 @@ final class CustomerStore: ObservableObject {
         let taxId: String
         let contractNo: String
         let contractDate: String
+        let projectNo: String
+        let contractControlNo: String
         let agencyAddress: String
         let readiness: String
         let missingItems: [String]
@@ -355,24 +379,6 @@ final class CustomerStore: ObservableObject {
             rows.append(row)
         }
         return rows
-    }
-
-    private func normalizeCSVHeader(_ text: String) -> String {
-        text
-            .replacingOccurrences(of: "\u{FEFF}", with: "")
-            .trimmingCharacters(in: .whitespacesAndNewlines)
-            .lowercased()
-    }
-
-    private func normalizeDistrict(_ text: String) -> String {
-        var output = text.trimmingCharacters(in: .whitespacesAndNewlines)
-        if output.hasPrefix("อำเภอ") {
-            output = String(output.dropFirst("อำเภอ".count))
-        }
-        if output.hasPrefix("อ.") {
-            output = String(output.dropFirst("อ.".count))
-        }
-        return output.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
     private func makeAgencyType(from agencyName: String) -> String {
@@ -983,6 +989,7 @@ final class CustomerStore: ObservableObject {
         line.weightSlipTotalWeightMatched = weightResult.isConsistent
         line.weightSlipAgencyCheckNote = agencyResult.note
         line.weightSlipWeightCheckNote = weightResult.note
+        line.weightParserAudit = weightResult.parserAudit
         line.weightTonFromTable = weightResult.weightTonFromTable
         line.ocrTotalTon = weightResult.ocrTotalTon
         line.ocrDetectedWeight = weightResult.ocrTotalTon
@@ -1078,6 +1085,17 @@ final class CustomerStore: ObservableObject {
         let ocrTotalTon: Double
         let isConsistent: Bool
         let note: String
+        let parserAudit: String
+    }
+
+    private struct ParsedWeightRowDecision {
+        let sourceLine: String
+        let signature: String
+        let extractedCandidates: [Double]
+        let normalizedCandidates: [Double]
+        let selectedWeightTon: Double?
+        let accepted: Bool
+        let reason: String
     }
 
     private func detectTotalWeight(in ocrText: String) -> WeightDecision {
@@ -1089,6 +1107,8 @@ final class CustomerStore: ObservableObject {
         let tableResult = detectWeightFromTable(lines: lines)
         let tableTotalTon = roundedTon(tableResult.total)
         let explicitTotalTon = roundedTon(detectExplicitTotalWeight(lines: lines))
+        let parserAudit = makeParserAuditPayload(decisions: tableResult.decisions)
+        let droppedSummary = droppedReasonSummary(decisions: tableResult.decisions)
 
         guard tableTotalTon > 0 else {
             if explicitTotalTon > 0 {
@@ -1096,14 +1116,16 @@ final class CustomerStore: ObservableObject {
                     weightTonFromTable: 0,
                     ocrTotalTon: explicitTotalTon,
                     isConsistent: false,
-                    note: "OCR พบยอดรวม \(formatNumber(explicitTotalTon)) ตัน แต่ไม่พบบรรทัดตารางน้ำหนัก จึงไม่เติมน้ำหนักอัตโนมัติ"
+                    note: "OCR พบยอดรวม \(formatNumber(explicitTotalTon)) ตัน แต่ไม่พบบรรทัดตารางน้ำหนัก จึงไม่เติมน้ำหนักอัตโนมัติ\(droppedSummary)",
+                    parserAudit: parserAudit
                 )
             }
             return WeightDecision(
                 weightTonFromTable: 0,
                 ocrTotalTon: 0,
                 isConsistent: false,
-                note: "OCR ไม่พบบรรทัดตารางน้ำหนักที่ใช้คำนวณผลรวม"
+                note: "OCR ไม่พบบรรทัดตารางน้ำหนักที่ใช้คำนวณผลรวม\(droppedSummary)",
+                parserAudit: parserAudit
             )
         }
 
@@ -1116,7 +1138,8 @@ final class CustomerStore: ObservableObject {
                 weightTonFromTable: tableTotalTon,
                 ocrTotalTon: explicitTotalTon,
                 isConsistent: isConsistent,
-                note: "รวมจากตารางน้ำหนัก \(tableResult.rowCount) แถว = \(formatNumber(tableTotalTon)) ตัน | ยอดรวม OCR \(formatNumber(explicitTotalTon)) ตัน | \(compareText)"
+                note: "รวมจากตารางน้ำหนัก \(tableResult.rowCount) แถว = \(formatNumber(tableTotalTon)) ตัน | ยอดรวม OCR \(formatNumber(explicitTotalTon)) ตัน | \(compareText)\(droppedSummary)",
+                parserAudit: parserAudit
             )
         }
 
@@ -1124,40 +1147,99 @@ final class CustomerStore: ObservableObject {
             weightTonFromTable: tableTotalTon,
             ocrTotalTon: 0,
             isConsistent: true,
-            note: "รวมจากตารางน้ำหนัก \(tableResult.rowCount) แถว = \(formatNumber(tableTotalTon)) ตัน (ไม่พบยอดรวม OCR สำหรับเทียบ)"
+            note: "รวมจากตารางน้ำหนัก \(tableResult.rowCount) แถว = \(formatNumber(tableTotalTon)) ตัน (ไม่พบยอดรวม OCR สำหรับเทียบ)\(droppedSummary)",
+            parserAudit: parserAudit
         )
     }
 
-    private func detectWeightFromTable(lines: [String]) -> (total: Double, rowCount: Int) {
+    private func detectWeightFromTable(lines: [String]) -> (total: Double, rowCount: Int, decisions: [ParsedWeightRowDecision]) {
         let summaryKeywords = ["น้ำหนักรวม", "รวมน้ำหนัก", "รวมสุทธิ", "รวมทั้งเดือน", "ยอดรวม", "total", "sum"]
         let amountKeywords = ["บาท", "vat", "ภาษี", "amount", "ราคา", "รวมเงิน", "ยอดเงิน"]
         let idKeywords = ["เลขที่", "เลขใบชั่ง", "ticket", "invoice", "ทะเบียน", "โทร", "fax", "แฟกซ์", "สัญญา", "ใบแจ้งหนี้"]
         let rowKeywords = ["น้ำหนัก", "weight", "kg", "กก", "ตัน", "ton", "net", "สุทธิ", "gross", "tare", "เที่ยว", "trip"]
         var weights: [Double] = []
+        var decisions: [ParsedWeightRowDecision] = []
+        var seenSignatures = Set<String>()
 
         for line in lines {
             let normalizedLine = line.lowercased()
-            if containsAnyKeyword(summaryKeywords, in: normalizedLine) { continue }
-            if containsAnyKeyword(amountKeywords, in: normalizedLine) { continue }
-            if containsAnyKeyword(idKeywords, in: normalizedLine) { continue }
-            if isDateTimeOnlyLine(line) { continue }
+            let signature = parserLineSignature(line)
+            if containsAnyKeyword(summaryKeywords, in: normalizedLine) {
+                decisions.append(
+                    ParsedWeightRowDecision(sourceLine: line, signature: signature, extractedCandidates: [], normalizedCandidates: [], selectedWeightTon: nil, accepted: false, reason: "reject: summary line")
+                )
+                continue
+            }
+            if containsAnyKeyword(amountKeywords, in: normalizedLine) {
+                decisions.append(
+                    ParsedWeightRowDecision(sourceLine: line, signature: signature, extractedCandidates: [], normalizedCandidates: [], selectedWeightTon: nil, accepted: false, reason: "reject: amount/money line")
+                )
+                continue
+            }
+            if containsAnyKeyword(idKeywords, in: normalizedLine) {
+                decisions.append(
+                    ParsedWeightRowDecision(sourceLine: line, signature: signature, extractedCandidates: [], normalizedCandidates: [], selectedWeightTon: nil, accepted: false, reason: "reject: id/meta line")
+                )
+                continue
+            }
+            if isDateTimeOnlyLine(line) {
+                decisions.append(
+                    ParsedWeightRowDecision(sourceLine: line, signature: signature, extractedCandidates: [], normalizedCandidates: [], selectedWeightTon: nil, accepted: false, reason: "reject: datetime-only line")
+                )
+                continue
+            }
 
-            guard let rowWeight = extractTableRowWeightTon(from: line, rowKeywords: rowKeywords) else { continue }
-            weights.append(rowWeight)
+            let extraction = extractTableRowWeightTon(from: line, rowKeywords: rowKeywords)
+            var decision = extraction.decision
+            if let rowWeight = extraction.weightTon {
+                if seenSignatures.contains(signature) {
+                    decision = ParsedWeightRowDecision(
+                        sourceLine: decision.sourceLine,
+                        signature: signature,
+                        extractedCandidates: decision.extractedCandidates,
+                        normalizedCandidates: decision.normalizedCandidates,
+                        selectedWeightTon: decision.selectedWeightTon,
+                        accepted: false,
+                        reason: "reject: duplicate OCR line signature"
+                    )
+                    decisions.append(decision)
+                    continue
+                }
+                seenSignatures.insert(signature)
+                weights.append(rowWeight)
+                decisions.append(decision)
+                continue
+            }
+            decisions.append(decision)
         }
 
         let total = weights.reduce(0, +)
-        return (total, weights.count)
+        return (total, weights.count, decisions)
     }
 
-    private func extractTableRowWeightTon(from line: String, rowKeywords: [String]) -> Double? {
+    private func extractTableRowWeightTon(from line: String, rowKeywords: [String]) -> (weightTon: Double?, decision: ParsedWeightRowDecision) {
         let normalizedLine = line.lowercased()
-        let candidates = extractNumbers(from: line)
+        let signature = parserLineSignature(line)
+        let rawCandidates = extractNumbers(from: line)
             .filter(plausibleWeight)
+        let candidates = rawCandidates
             .map { normalizedWeight($0, sourceLine: normalizedLine) }
             .filter(plausibleTableRowWeight)
 
-        guard !candidates.isEmpty else { return nil }
+        guard !candidates.isEmpty else {
+            return (
+                nil,
+                ParsedWeightRowDecision(
+                    sourceLine: line,
+                    signature: signature,
+                    extractedCandidates: rawCandidates,
+                    normalizedCandidates: candidates,
+                    selectedWeightTon: nil,
+                    accepted: false,
+                    reason: "reject: no plausible row-weight candidate"
+                )
+            )
+        }
 
         let hasRowKeyword = containsAnyKeyword(rowKeywords, in: normalizedLine)
         let startsWithRowIndex = line.range(of: #"^\s*\d{1,3}(?:[\)\.\-]|\s)"#, options: .regularExpression) != nil
@@ -1165,11 +1247,83 @@ final class CustomerStore: ObservableObject {
         let hasMultipleCandidates = candidates.count >= 2
 
         guard hasRowKeyword || (startsWithRowIndex && hasMultipleCandidates) || (hasTableSeparator && hasMultipleCandidates) else {
-            return nil
+            return (
+                nil,
+                ParsedWeightRowDecision(
+                    sourceLine: line,
+                    signature: signature,
+                    extractedCandidates: rawCandidates,
+                    normalizedCandidates: candidates,
+                    selectedWeightTon: nil,
+                    accepted: false,
+                    reason: "reject: row-shape gate failed"
+                )
+            )
         }
 
-        guard let selected = candidates.last else { return nil }
-        return roundedTon(selected)
+        guard let selected = candidates.last else {
+            return (
+                nil,
+                ParsedWeightRowDecision(
+                    sourceLine: line,
+                    signature: signature,
+                    extractedCandidates: rawCandidates,
+                    normalizedCandidates: candidates,
+                    selectedWeightTon: nil,
+                    accepted: false,
+                    reason: "reject: candidate selection failed"
+                )
+            )
+        }
+        let rounded = roundedTon(selected)
+        return (
+            rounded,
+            ParsedWeightRowDecision(
+                sourceLine: line,
+                signature: signature,
+                extractedCandidates: rawCandidates,
+                normalizedCandidates: candidates,
+                selectedWeightTon: rounded,
+                accepted: true,
+                reason: "accept: parsed table row weight"
+            )
+        )
+    }
+
+    private func parserLineSignature(_ text: String) -> String {
+        thaiDigitsToArabic(text)
+            .lowercased()
+            .filter { $0.isLetter || $0.isNumber }
+            .map(String.init)
+            .joined()
+    }
+
+    private func makeParserAuditPayload(decisions: [ParsedWeightRowDecision]) -> String {
+        decisions.map { decision in
+            let raw = decision.extractedCandidates.map(formatNumber).joined(separator: ",")
+            let normalized = decision.normalizedCandidates.map(formatNumber).joined(separator: ",")
+            let selected = decision.selectedWeightTon.map(formatNumber) ?? "-"
+            return [
+                decision.accepted ? "ACCEPT" : "REJECT",
+                decision.reason,
+                "sig=\(decision.signature)",
+                "raw=[\(raw)]",
+                "norm=[\(normalized)]",
+                "selected=\(selected)",
+                "line=\(decision.sourceLine)"
+            ].joined(separator: " | ")
+        }
+        .joined(separator: "\n")
+    }
+
+    private func droppedReasonSummary(decisions: [ParsedWeightRowDecision]) -> String {
+        let rejected = decisions.filter { !$0.accepted }
+        guard !rejected.isEmpty else { return "" }
+        let grouped = Dictionary(grouping: rejected, by: \.reason)
+            .map { reason, items in "\(reason)=\(items.count)" }
+            .sorted()
+            .joined(separator: ", ")
+        return " | ตัดทิ้ง \(rejected.count) บรรทัด (\(grouped))"
     }
 
     private func detectExplicitTotalWeight(lines: [String]) -> Double {
