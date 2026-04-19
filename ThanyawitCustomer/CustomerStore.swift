@@ -123,26 +123,13 @@ final class CustomerStore: ObservableObject {
     }
 
     private func loadBundledCustomers() -> [Customer] {
-        let jsonCustomers = loadBundledCustomersFromJSON()
         let csvRows = loadBundledCustomersFromCSV()
-        guard !csvRows.isEmpty else { return jsonCustomers }
-        return mergeBundledCustomers(from: csvRows, fallback: jsonCustomers)
-    }
-
-    private func loadBundledCustomersFromJSON() -> [Customer] {
-        guard let url = Bundle.main.url(forResource: "customers", withExtension: "json", subdirectory: "Resources")
-                ?? Bundle.main.url(forResource: "customers", withExtension: "json") else {
-            assertionFailure("customers.json not found")
+        guard !csvRows.isEmpty else {
+            assertionFailure("thanyawit_customers.csv is required as single source of truth")
             return []
         }
-
-        do {
-            let data = try Data(contentsOf: url)
-            return try JSONDecoder().decode([Customer].self, from: data)
-        } catch {
-            assertionFailure("Failed to load customers: \(error)")
-            return []
-        }
+        let customers = mergeBundledCustomers(from: csvRows)
+        return customers
     }
 
     private func loadBundledCustomersFromCSV() -> [BundledCustomerCSVRow] {
@@ -199,90 +186,53 @@ final class CustomerStore: ObservableObject {
         }
     }
 
-    private func mergeBundledCustomers(from csvRows: [BundledCustomerCSVRow], fallback: [Customer]) -> [Customer] {
-        let fallbackByCode = Dictionary(uniqueKeysWithValues: fallback.map { ($0.customerCode.uppercased(), $0) })
+    private func mergeBundledCustomers(from csvRows: [BundledCustomerCSVRow]) -> [Customer] {
         var merged: [Customer] = []
-        var usedCodes = Set<String>()
 
         for row in csvRows {
             let code = row.customerCode.uppercased()
-            var customer = fallbackByCode[code] ?? Customer.blank(nextCode: code)
+            var customer = Customer.blank(nextCode: code)
             customer.id = code
             customer.customerCode = code
             customer.agencyName = row.agencyName
             customer.documentName = row.agencyName
-            customer.agencyShort = preferredText(customer.agencyShort, makeAgencyShort(from: row.agencyName))
-            customer.agencyType = preferredText(makeAgencyType(from: row.agencyName), customer.agencyType)
+            customer.agencyShort = makeAgencyShort(from: row.agencyName)
+            customer.agencyType = makeAgencyType(from: row.agencyName)
             customer.customerGroup = preferredText(row.customerGroup, customer.customerGroup)
             customer.districtName = preferredText(row.districtName, customer.districtName)
-            customer.taxId = preferredText(row.taxId, customer.taxId)
-            customer.contractNo = preferredText(row.contractNo, customer.contractNo)
-            customer.contractDate = preferredText(row.contractDate, customer.contractDate)
-            customer.agencyAddress = preferredText(row.agencyAddress, customer.agencyAddress)
+            customer.taxId = row.taxId
+            customer.contractNo = row.contractNo
+            customer.contractDate = row.contractDate
+            customer.agencyAddress = row.agencyAddress
             customer.provinceName = preferredText(inferProvinceName(from: customer.agencyAddress), customer.provinceName)
             customer.readiness = preferredText(row.readiness, customer.readiness)
-            if !row.missingItems.isEmpty {
-                customer.missingItems = row.missingItems
-            } else if customer.readiness == "พร้อมออก" {
-                customer.missingItems = []
-            }
+            customer.missingItems = row.missingItems
             customer.internalNote = appendSourceNote(customer.internalNote, source: "thanyawit_customers.csv")
             merged.append(customer)
-            usedCodes.insert(code)
         }
 
-        let extras = fallback.filter { !usedCodes.contains($0.customerCode.uppercased()) }
-        return merged + extras
+        return merged
     }
 
     private func mergeSavedCustomers(_ saved: [Customer], withBundled bundled: [Customer]) -> [Customer] {
         let savedByID = Dictionary(uniqueKeysWithValues: saved.map { ($0.id, $0) })
         let savedByCode = Dictionary(uniqueKeysWithValues: saved.map { ($0.customerCode, $0) })
         var merged: [Customer] = []
-        var usedSavedIDs = Set<String>()
 
         for bundledCustomer in bundled {
             let savedCustomer = savedByID[bundledCustomer.id] ?? savedByCode[bundledCustomer.customerCode]
             if let savedCustomer {
                 merged.append(mergeCustomer(savedCustomer, fallback: bundledCustomer))
-                usedSavedIDs.insert(savedCustomer.id)
             } else {
                 merged.append(bundledCustomer)
             }
         }
-
-        let extras = saved.filter { !usedSavedIDs.contains($0.id) }
-        return merged + extras
+        return merged
     }
 
     private func mergeCustomer(_ saved: Customer, fallback bundled: Customer) -> Customer {
-        var merged = saved
-
-        merged.id = preferredText(saved.id, bundled.id)
-        merged.customerCode = preferredText(saved.customerCode, bundled.customerCode)
-        merged.agencyName = preferredText(bundled.agencyName, saved.agencyName)
-        merged.agencyShort = preferredText(bundled.agencyShort, saved.agencyShort)
-        merged.agencyType = preferredText(bundled.agencyType, saved.agencyType)
-        merged.customerGroup = preferredText(bundled.customerGroup, saved.customerGroup)
-        merged.districtName = preferredText(bundled.districtName, saved.districtName)
-        merged.provinceName = preferredText(bundled.provinceName, saved.provinceName)
-        merged.procurementMethod = preferredText(saved.procurementMethod, bundled.procurementMethod)
-        merged.projectType = preferredText(saved.projectType, bundled.projectType)
-        merged.taxId = preferredText(bundled.taxId, saved.taxId)
-        merged.contractNo = preferredText(bundled.contractNo, saved.contractNo)
-        merged.contractDate = preferredText(bundled.contractDate, saved.contractDate)
-        merged.projectNo = preferredText(bundled.projectNo, saved.projectNo)
-        merged.documentName = preferredText(bundled.documentName, saved.documentName)
-        merged.attentionName = preferredText(bundled.attentionName, saved.attentionName)
-        merged.agencyAddress = preferredText(bundled.agencyAddress, saved.agencyAddress)
-        merged.baseRevenue2569 = preferredNumber(saved.baseRevenue2569, bundled.baseRevenue2569)
-        merged.baseWeight2569 = preferredNumber(saved.baseWeight2569, bundled.baseWeight2569)
-        merged.unitRateDefault = preferredNumber(saved.unitRateDefault, bundled.unitRateDefault)
-        merged.vatPercent = preferredNumber(saved.vatPercent, bundled.vatPercent)
-        merged.whtPercent = preferredNumber(saved.whtPercent, bundled.whtPercent)
-        merged.readiness = preferredText(bundled.readiness, saved.readiness)
-        merged.missingItems = bundled.missingItems.isEmpty ? saved.missingItems : bundled.missingItems
-        merged.internalNote = preferredText(bundled.internalNote, saved.internalNote)
+        var merged = bundled
+        merged.internalNote = preferredText(saved.internalNote, bundled.internalNote)
         merged.lineId = preferredText(saved.lineId, bundled.lineId)
         merged.documentWorkCompletedAt = preferredText(saved.documentWorkCompletedAt, bundled.documentWorkCompletedAt)
         merged.lastLineSentAt = preferredText(saved.lastLineSentAt, bundled.lastLineSentAt)
@@ -309,6 +259,55 @@ final class CustomerStore: ObservableObject {
         let agencyAddress: String
         let readiness: String
         let missingItems: [String]
+    }
+
+    struct CustomerCSVValidationSummary {
+        let totalRows: Int
+        let duplicateCodes: [String]
+        let missingTaxIdCount: Int
+        let missingContractNoCount: Int
+        let missingContractDateCount: Int
+        let missingAddressCount: Int
+    }
+
+    func customerCSVValidationSummary() -> CustomerCSVValidationSummary {
+        var seen = Set<String>()
+        var duplicates = Set<String>()
+        var missingTaxId = 0
+        var missingContractNo = 0
+        var missingContractDate = 0
+        var missingAddress = 0
+
+        for customer in customers {
+            let code = customer.customerCode.uppercased()
+            if seen.contains(code) {
+                duplicates.insert(code)
+            } else {
+                seen.insert(code)
+            }
+
+            if customer.taxId.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                missingTaxId += 1
+            }
+            if customer.contractNo.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                missingContractNo += 1
+            }
+            if customer.contractDate.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                missingContractDate += 1
+            }
+            if customer.agencyAddress.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                missingAddress += 1
+            }
+        }
+
+        return CustomerCSVValidationSummary(
+            totalRows: customers.count,
+            duplicateCodes: duplicates.sorted(),
+            missingTaxIdCount: missingTaxId,
+            missingContractNoCount: missingContractNo,
+            missingContractDateCount: missingContractDate,
+            missingAddressCount: missingAddress
+        )
     }
 
     private func parseCSVRows(_ text: String) -> [[String]] {

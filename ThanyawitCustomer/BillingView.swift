@@ -31,6 +31,36 @@ struct BillingView: View {
         }
     }
 
+    private var validationSummaryPanel: some View {
+        let summary = store.customerCSVValidationSummary()
+        return VStack(alignment: .leading, spacing: 6) {
+            Text("Validation Summary (CSV Master)")
+                .font(.headline)
+            Text("รวม \(summary.totalRows) หน่วยงาน")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+            Text("Tax ID ขาด \(summary.missingTaxIdCount) · เลขสัญญาขาด \(summary.missingContractNoCount) · วันที่สัญญาขาด \(summary.missingContractDateCount) · ที่อยู่ขาด \(summary.missingAddressCount)")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+            if summary.duplicateCodes.isEmpty {
+                Text("รหัสลูกค้าไม่ซ้ำ")
+                    .font(.caption2)
+                    .foregroundStyle(.green)
+            } else {
+                Text("รหัสลูกค้าซ้ำ: \(summary.duplicateCodes.joined(separator: ", "))")
+                    .font(.caption2)
+                    .foregroundStyle(.orange)
+            }
+        }
+        .padding()
+        .background(.orange.opacity(0.08))
+        .clipShape(RoundedRectangle(cornerRadius: 16))
+        .overlay {
+            RoundedRectangle(cornerRadius: 16)
+                .stroke(.orange.opacity(0.2))
+        }
+    }
+
     private var bulkWeightSlipImportPanel: some View {
         VStack(alignment: .leading, spacing: 10) {
             HStack(alignment: .top) {
@@ -122,6 +152,10 @@ struct BillingView: View {
             .padding()
 
             bulkWeightSlipImportPanel
+                .padding(.horizontal)
+                .padding(.bottom, 10)
+
+            validationSummaryPanel
                 .padding(.horizontal)
                 .padding(.bottom, 10)
 
