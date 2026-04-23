@@ -98,18 +98,24 @@ final class CustomerStore: ObservableObject {
     }
 
     func loadCustomers() {
-        let bundled = loadBundledCustomers()
+        let savedCustomers = loadSavedCustomers()
         let savedVersion = UserDefaults.standard.integer(forKey: bundledCustomersVersionKey)
 
-        if let data = UserDefaults.standard.data(forKey: customersKey),
-           let saved = try? JSONDecoder().decode([Customer].self, from: data),
-           !saved.isEmpty {
+        guard let bundled = try? loadBundledCustomers(), !bundled.isEmpty else {
+            assertionFailure("Unable to load bundled customer master from thanyawit_customers.csv")
+            if let savedCustomers, !savedCustomers.isEmpty {
+                customers = savedCustomers
+            }
+            return
+        }
+
+        if let savedCustomers, !savedCustomers.isEmpty {
             if savedVersion < bundledCustomersVersion {
-                customers = mergeSavedCustomers(saved, withBundled: bundled)
+                customers = mergeSavedCustomers(savedCustomers, withBundled: bundled)
                 saveCustomers()
                 UserDefaults.standard.set(bundledCustomersVersion, forKey: bundledCustomersVersionKey)
             } else {
-                customers = saved
+                customers = savedCustomers
             }
         } else {
             customers = bundled
@@ -122,20 +128,25 @@ final class CustomerStore: ObservableObject {
         }
     }
 
-    private func loadBundledCustomers() -> [Customer] {
-        let csvRows = loadBundledCustomersFromCSV()
+    private func loadSavedCustomers() -> [Customer]? {
+        guard let data = UserDefaults.standard.data(forKey: customersKey) else { return nil }
+        return try? JSONDecoder().decode([Customer].self, from: data)
+    }
+
+    private func loadBundledCustomers() throws -> [Customer] {
+        let csvRows = try loadBundledCustomersFromCSV()
         guard !csvRows.isEmpty else {
-            assertionFailure("thanyawit_customers.csv is required as single source of truth")
-            return []
+            throw CustomerStoreError.emptyBundledCSV
         }
-        let customers = mergeBundledCustomers(from: csvRows)
+        let pricingDefaults = try loadBundledPricingDefaultsByCode()
+        let customers = mergeBundledCustomers(from: csvRows, pricingDefaults: pricingDefaults)
         return customers
     }
 
-    private func loadBundledCustomersFromCSV() -> [BundledCustomerCSVRow] {
+    private func loadBundledCustomersFromCSV() throws -> [BundledCustomerCSVRow] {
         guard let url = Bundle.main.url(forResource: "thanyawit_customers", withExtension: "csv", subdirectory: "Resources")
                 ?? Bundle.main.url(forResource: "thanyawit_customers", withExtension: "csv") else {
-            return []
+            throw CustomerStoreError.missingBundledCSV
         }
 
         do {
@@ -181,12 +192,35 @@ final class CustomerStore: ObservableObject {
                 )
             }
         } catch {
-            assertionFailure("Failed to load thanyawit_customers.csv: \(error)")
-            return []
+            throw CustomerStoreError.invalidBundledCSV(error)
         }
     }
 
-    private func mergeBundledCustomers(from csvRows: [BundledCustomerCSVRow]) -> [Customer] {
+    private func loadBundledPricingDefaultsByCode() throws -> [String: CustomerPricingDefaults] {
+        guard let url = Bundle.main.url(forResource: "customers", withExtension: "json", subdirectory: "Resources")
+                ?? Bundle.main.url(forResource: "customers", withExtension: "json") else {
+            throw CustomerStoreError.missingBundledPricingJSON
+        }
+
+        do {
+            let data = try Data(contentsOf: url)
+            let bundled = try JSONDecoder().decode([Customer].self, from: data)
+            return Dictionary(uniqueKeysWithValues: bundled.map { customer in
+                (
+                    customer.customerCode.uppercased(),
+                    CustomerPricingDefaults(
+                        baseRevenue2569: customer.baseRevenue2569,
+                        baseWeight2569: customer.baseWeight2569,
+                        unitRateDefault: customer.unitRateDefault
+                    )
+                )
+            })
+        } catch {
+            throw CustomerStoreError.invalidBundledPricingJSON(error)
+        }
+    }
+
+    private func mergeBundledCustomers(from csvRows: [BundledCustomerCSVRow], pricingDefaults: [String: CustomerPricingDefaults]) -> [Customer] {
         var merged: [Customer] = []
 
         for row in csvRows {
@@ -207,6 +241,11 @@ final class CustomerStore: ObservableObject {
             customer.provinceName = preferredText(inferProvinceName(from: customer.agencyAddress), customer.provinceName)
             customer.readiness = preferredText(row.readiness, customer.readiness)
             customer.missingItems = row.missingItems
+            if let pricing = pricingDefaults[code] {
+                customer.baseRevenue2569 = pricing.baseRevenue2569
+                customer.baseWeight2569 = pricing.baseWeight2569
+                customer.unitRateDefault = pricing.unitRateDefault
+            }
             customer.internalNote = appendSourceNote(customer.internalNote, source: "thanyawit_customers.csv")
             merged.append(customer)
         }
@@ -246,6 +285,20 @@ final class CustomerStore: ObservableObject {
 
     private func preferredNumber(_ primary: Double, _ fallback: Double) -> Double {
         primary == 0 ? fallback : primary
+    }
+
+    private struct CustomerPricingDefaults {
+        let baseRevenue2569: Double
+        let baseWeight2569: Double
+        let unitRateDefault: Double
+    }
+
+    private enum CustomerStoreError: Error {
+        case missingBundledCSV
+        case emptyBundledCSV
+        case invalidBundledCSV(Error)
+        case missingBundledPricingJSON
+        case invalidBundledPricingJSON(Error)
     }
 
     private struct BundledCustomerCSVRow {
