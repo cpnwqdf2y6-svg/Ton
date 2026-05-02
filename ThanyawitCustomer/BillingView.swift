@@ -2,6 +2,7 @@ import SwiftUI
 import PhotosUI
 import UIKit
 import UniformTypeIdentifiers
+import PDFKit
 
 struct BillingView: View {
     @EnvironmentObject private var store: CustomerStore
@@ -15,7 +16,9 @@ struct BillingView: View {
 
     private var filteredBillingCustomers: [Customer] {
         store.customers.filter { customer in
-            let query = billingSearchText.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+            let query = billingSearchText
+                .trimmingCharacters(in: CharacterSet.whitespacesAndNewlines)
+                .lowercased()
             let searchableText = [
                 customer.customerCode,
                 customer.agencyName,
@@ -221,7 +224,7 @@ struct BillingView: View {
 
         let results = store.importBulkWeightSlipImages(imageDatas)
         bulkSlipResults = results
-        let successCount = results.filter(\.isSuccess).count
+        let successCount = results.filter { $0.isSuccess }.count
         let reviewCount = results.count - successCount
         bulkSlipMessage = "แยกสำเร็จ \(successCount)/\(results.count) ใบ" + (reviewCount > 0 ? " · รอตรวจ \(reviewCount) ใบ" : "")
         isBulkSlipImporting = false
@@ -659,6 +662,24 @@ struct BillingLineView: View {
         } catch {
             slipMessage = "แนบไฟล์หลักฐานไม่สำเร็จ: \(error.localizedDescription)"
         }
+    }
+
+    private func extractTextFromPDFData(_ data: Data) -> String {
+        guard let pdf = PDFDocument(data: data), pdf.pageCount > 0 else {
+            return ""
+        }
+
+        let texts = (0..<pdf.pageCount).compactMap { index in
+            pdf.page(at: index)?.string
+        }
+        return texts.joined(separator: "\n")
+    }
+
+    private func parseBillingRowsFromPDFTableText(_ text: String) -> [String] {
+        text
+            .components(separatedBy: .newlines)
+            .map { $0.trimmingCharacters(in: CharacterSet.whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
     }
 
     private var canApproveBilling: Bool {
