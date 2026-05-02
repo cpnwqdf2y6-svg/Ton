@@ -333,6 +333,68 @@ struct PrecheckResult: Identifiable, Hashable {
     }
 }
 
+
+
+struct WeightSlipRecord: Identifiable, Codable, Hashable {
+    var id: String
+    var customerCode: String
+    var customerName: String
+    var companyCode: String
+    var productCode: String
+    var productName: String
+    var ticketNo: String
+    var truckPlate: String
+    var dateIn: String
+    var timeIn: String
+    var grossKg: Double?
+    var dateOut: String
+    var timeOut: String
+    var tareKg: Double?
+    var netKg: Double?
+    var netTon: Double?
+    var sourceType: String
+    var sourceFileName: String
+    var sourceFilePath: String
+    var sourceRawText: String
+    var evidenceImagePath: String
+    var signatureImagePath: String
+    var parserConfidence: Double
+    var parserNote: String
+    var isReviewed: Bool
+    var reviewedAt: String
+    var reviewerNote: String
+    var matchStatus: String = "unmatched"
+    var conflictReason: String = ""
+    var matchedCustomerCode: String = ""
+    var matchedCustomerName: String = ""
+}
+
+struct CustomerMasterRecord: Identifiable, Codable, Hashable {
+    var id: String {
+        let codePart = [customerCode, companyCode]
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
+            .joined(separator: "|")
+        let base = codePart.isEmpty ? "UNKNOWN" : codePart
+        return "\(base)|\(stableSourceToken)"
+    }
+    var customerCode: String
+    var companyCode: String
+    var customerName: String
+    var agencyName: String
+    var districtName: String
+    var customerGroup: String
+    var billingName: String
+    var sourceFileName: String
+    var sourceRawText: String
+
+    private var stableSourceToken: String {
+        let text = "\(sourceFileName)|\(sourceRawText)"
+        let value = text.unicodeScalars.reduce(0 as UInt64) { ($0 &* 131) &+ UInt64($1.value) }
+        return String(value, radix: 16)
+    }
+}
+
 struct BulkWeightSlipImportResult: Identifiable, Hashable {
     var id = UUID()
     var index: Int
