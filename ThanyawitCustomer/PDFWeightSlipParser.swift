@@ -55,14 +55,15 @@ struct PDFWeightSlipParser {
         let rows = lines.map(parseRow).filter { !$0.numbers.isEmpty }
         let bestRow = rows.max { $0.score < $1.score }
         let labelled = parseLabelledWeights(from: lines)
+        let parsedTimes = parseTimes(from: lines)
 
         var slip = ParsedSlip(
             grossTon: labelled.grossTon ?? bestRow?.grossTon,
             tareTon: labelled.tareTon ?? bestRow?.tareTon,
             netTon: labelled.netTon ?? bestRow?.netTon,
             ticketNo: parseTicketNo(from: lines),
-            timeIn: parseTime(from: lines, keywords: ["เวลาเข้า", "เข้า", "time in", "in"]),
-            timeOut: parseTime(from: lines, keywords: ["เวลาออก", "ออก", "time out", "out"]),
+            timeIn: parsedTimes.timeIn,
+            timeOut: parsedTimes.timeOut,
             sourceLine: bestRow?.rawLine,
             confidence: bestRow?.score ?? 0
         )
@@ -96,7 +97,7 @@ struct PDFWeightSlipParser {
 
     private static func parseRow(_ line: String) -> ParsedRow {
         let lower = line.lowercased()
-        let values = extractNumbers(from: line).map(normalizeWeightToTon)
+        let values = extractWeightCandidates(from: line)
         var score = 0.0
 
         if containsAny(lower, ["gross", "น้ำหนักรวม", "นน.รวม", "ชั่งเข้า"]) { score += 0.20 }
@@ -152,17 +153,16 @@ struct PDFWeightSlipParser {
 
         for line in lines {
             let lower = line.lowercased()
-            let values = extractNumbers(from: line).map(normalizeWeightToTon)
-            guard let first = values.first else { continue }
+            guard let labelledWeight = bestLabelledWeightCandidate(from: line) else { continue }
 
             if gross == nil, containsAny(lower, ["gross", "น้ำหนักรวม", "นน.รวม", "ชั่งเข้า"]) {
-                gross = first
+                gross = labelledWeight
             }
             if tare == nil, containsAny(lower, ["tare", "น้ำหนักรถ", "นน.รถ", "ชั่งออก"]) {
-                tare = first
+                tare = labelledWeight
             }
             if net == nil, containsAny(lower, ["net", "สุทธิ", "น้ำหนักสุทธิ", "นน.สุทธิ"]) {
-                net = first
+                net = labelledWeight
             }
         }
 
@@ -186,21 +186,65 @@ struct PDFWeightSlipParser {
         return nil
     }
 
-    private static func parseTime(from lines: [String], keywords: [String]) -> String? {
+    private static func parseTimes(from lines: [String]) -> (timeIn: String?, timeOut: String?) {
+        var timeIn: String?
+        var timeOut: String?
+
         for line in lines {
             let lower = line.lowercased()
-            guard containsAny(lower, keywords) else { continue }
-            if let match = firstMatch(in: line, pattern: #"\b([0-2]?\d)[:.]([0-5]\d)\b"#) {
-                return match.replacingOccurrences(of: ".", with: ":")
+            if timeIn == nil,
+               containsAny(lower, ["เวลาเข้า", "ชั่งเข้า", "เข้า", "time in"]) {
+                timeIn = firstTime(in: line)
+            }
+            if timeOut == nil,
+               containsAny(lower, ["เวลาออก", "ชั่งออก", "ออก", "time out"]) {
+                timeOut = firstTime(in: line)
             }
         }
 
-        for line in lines {
-            if let match = firstMatch(in: line, pattern: #"\b([0-2]?\d)[:.]([0-5]\d)\b"#) {
-                return match.replacingOccurrences(of: ".", with: ":")
-            }
+        let allTimes = lines.flatMap(extractTimes)
+        if timeIn == nil {
+            timeIn = allTimes.first
         }
-        return nil
+        if timeOut == nil {
+            timeOut = allTimes.first(where: { $0 != timeIn })
+        }
+        return (timeIn, timeOut)
+    }
+
+    private static func firstTime(in text: String) -> String? {
+        extractTimes(from: text).first
+    }
+
+    private static func extractTimes(from text: String) -> [String] {
+        let pattern = #"\b([0-2]?\d)[:.]([0-5]\d)\b"#
+        guard let regex = try? NSRegularExpression(pattern: pattern) else { return [] }
+        let range = NSRange(text.startIndex..<text.endIndex, in: text)
+        return regex.matches(in: text, range: range).compactMap { match in
+            guard let swiftRange = Range(match.range, in: text) else { return nil }
+            return String(text[swiftRange]).replacingOccurrences(of: ".", with: ":")
+        }
+    }
+
+    private static func extractWeightCandidates(from text: String) -> [Double] {
+        let withoutTimes = removeTimeTokens(from: text)
+        return extractNumbers(from: withoutTimes)
+            .map(normalizeWeightToTon)
+            .filter { $0 > 0 && $0 < 200 }
+    }
+
+    private static func bestLabelledWeightCandidate(from text: String) -> Double? {
+        let values = extractWeightCandidates(from: text)
+        guard !values.isEmpty else { return nil }
+        // After removing time tokens, the largest remaining value is usually gross/tare/net weight.
+        // This avoids choosing 13 or 55 from text like "ชั่งเข้า 13:55 26,540 kg".
+        return values.max()
+    }
+
+    private static func removeTimeTokens(from text: String) -> String {
+        guard let regex = try? NSRegularExpression(pattern: #"\b[0-2]?\d[:.][0-5]\d\b"#) else { return text }
+        let range = NSRange(text.startIndex..<text.endIndex, in: text)
+        return regex.stringByReplacingMatches(in: text, range: range, withTemplate: " ")
     }
 
     private static func extractNumbers(from text: String) -> [Double] {
@@ -239,14 +283,6 @@ struct PDFWeightSlipParser {
 
     private static func containsAny(_ text: String, _ keywords: [String]) -> Bool {
         keywords.contains { text.contains($0.lowercased()) }
-    }
-
-    private static func firstMatch(in text: String, pattern: String) -> String? {
-        guard let regex = try? NSRegularExpression(pattern: pattern) else { return nil }
-        let range = NSRange(text.startIndex..<text.endIndex, in: text)
-        guard let match = regex.firstMatch(in: text, range: range),
-              let swiftRange = Range(match.range, in: text) else { return nil }
-        return String(text[swiftRange])
     }
 
     private static func formatTon(_ value: Double) -> String {
