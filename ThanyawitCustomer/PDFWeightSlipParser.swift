@@ -102,7 +102,7 @@ struct PDFWeightSlipParser {
 
         if containsAny(lower, ["gross", "น้ำหนักรวม", "นน.รวม", "ชั่งเข้า"]) { score += 0.20 }
         if containsAny(lower, ["tare", "น้ำหนักรถ", "นน.รถ", "ชั่งออก"]) { score += 0.20 }
-        if containsAny(lower, ["net", "สุทธิ", "น้ำหนักสุทธิ", "นน.สุทธิ"]) { score += 0.30 }
+        if containsAny(lower, ["net", "สุทธิ", "น้ำหนักสุทธิ", "นํ้าหนักสุทธิ", "น้ําหนักสุทธิ", "นน.สุทธิ"]) { score += 0.30 }
         if lower.contains("kg") || lower.contains("กก") || lower.contains("ตัน") || lower.contains("ton") { score += 0.10 }
         if values.count >= 3 { score += 0.25 }
         if values.count == 2 { score += 0.10 }
@@ -129,7 +129,7 @@ struct PDFWeightSlipParser {
             }
         } else if values.count == 1 {
             let value = values[0]
-            if containsAny(lower, ["net", "สุทธิ", "น้ำหนักสุทธิ", "นน.สุทธิ"]) {
+            if containsAny(lower, ["net", "สุทธิ", "น้ำหนักสุทธิ", "นํ้าหนักสุทธิ", "น้ําหนักสุทธิ", "นน.สุทธิ"]) {
                 net = value
                 score += 0.15
             } else if containsAny(lower, ["gross", "น้ำหนักรวม", "นน.รวม", "ชั่งเข้า"]) {
@@ -161,7 +161,7 @@ struct PDFWeightSlipParser {
             if tare == nil, containsAny(lower, ["tare", "น้ำหนักรถ", "นน.รถ", "ชั่งออก"]) {
                 tare = labelledWeight
             }
-            if net == nil, containsAny(lower, ["net", "สุทธิ", "น้ำหนักสุทธิ", "นน.สุทธิ"]) {
+            if net == nil, containsAny(lower, ["net", "สุทธิ", "น้ำหนักสุทธิ", "นํ้าหนักสุทธิ", "น้ําหนักสุทธิ", "นน.สุทธิ"]) {
                 net = labelledWeight
             }
         }
@@ -242,7 +242,14 @@ struct PDFWeightSlipParser {
     }
 
     private static func removeTimeTokens(from text: String) -> String {
-        guard let regex = try? NSRegularExpression(pattern: #"\b[0-2]?\d[:.][0-5]\d\b"#) else { return text }
+        // Keep behavior explicit: always remove classic HH:MM / HH.MM,
+        // and remove noisy OCR time forms only when near time-related keywords.
+        let timeKeywords = #"(?:เวลาเข้า|เวลาออก|time(?:\s+in|\s+out)?|ชั่งเข้า|ชั่งออก)"#
+        let classicTime = #"\b[0-2]?\d[:.][0-5]\d\b"#
+        let noisyKeywordScopedTime = #"\#(timeKeywords)[^\n\r]{0,20}\b[0-2]?\d(?:[\- ]+[0-5]\d|[0-5]\d)\b"#
+        let pattern = "\(classicTime)|\(noisyKeywordScopedTime)"
+
+        guard let regex = try? NSRegularExpression(pattern: pattern, options: [.caseInsensitive]) else { return text }
         let range = NSRange(text.startIndex..<text.endIndex, in: text)
         return regex.stringByReplacingMatches(in: text, range: range, withTemplate: " ")
     }
