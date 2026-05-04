@@ -194,6 +194,113 @@ final class WindaFolderImporterTests: XCTestCase {
         XCTAssertEqual(matched[0].matchStatus, "warning")
         XCTAssertEqual(matched[0].conflictReason, "รหัสตรงกันแต่ชื่อลูกค้าไม่ตรง (ยึดรหัส)")
     }
+
+    func testParseCustomerNameDoesNotUseCustomerCodeLine() throws {
+        let importer = WindaFolderImporter()
+        let folder = try makeTempFolder()
+        let text = """
+        CUSTOMER CODE: C003
+        CUSTOMER: Example Customer Co., Ltd.
+        """
+        try text.write(to: folder.appendingPathComponent("TRK-CUSTOMER.TXT"), atomically: true, encoding: .utf8)
+
+        let result = try importer.importFiles(from: folder)
+        let row = try XCTUnwrap(result.weightSlips.first)
+        XCTAssertEqual(row.customerCode, "C003")
+        XCTAssertEqual(row.customerName, "Example Customer Co., Ltd.")
+    }
+
+    func testParseCustomerNameFromCustomerNameLineAfterCustomerCode() throws {
+        let importer = WindaFolderImporter()
+        let folder = try makeTempFolder()
+        let text = """
+        CUSTOMER CODE: C002
+        CUSTOMER NAME: Example Customer Co., Ltd.
+        """
+        try text.write(to: folder.appendingPathComponent("TRK-CUSTOMER-NAME.TXT"), atomically: true, encoding: .utf8)
+
+        let result = try importer.importFiles(from: folder)
+        let row = try XCTUnwrap(result.weightSlips.first)
+        XCTAssertEqual(row.customerCode, "C002")
+        XCTAssertEqual(row.customerName, "Example Customer Co., Ltd.")
+    }
+
+    func testParseCustomerCodeWithoutColonFormat() throws {
+        let importer = WindaFolderImporter()
+        let folder = try makeTempFolder()
+        let text = "CUSTOMER CODE C003"
+        try text.write(to: folder.appendingPathComponent("TRK-CUSTOMER-CODE-NOCOLON.TXT"), atomically: true, encoding: .utf8)
+
+        let result = try importer.importFiles(from: folder)
+        let row = try XCTUnwrap(result.weightSlips.first)
+        XCTAssertEqual(row.customerCode, "C003")
+    }
+
+    func testParseCustomerNameWithoutColonFormat() throws {
+        let importer = WindaFolderImporter()
+        let folder = try makeTempFolder()
+        let text = "CUSTOMER Example Customer Co., Ltd."
+        try text.write(to: folder.appendingPathComponent("TRK-CUSTOMER-NAME-NOCOLON.TXT"), atomically: true, encoding: .utf8)
+
+        let result = try importer.importFiles(from: folder)
+        let row = try XCTUnwrap(result.weightSlips.first)
+        XCTAssertEqual(row.customerName, "Example Customer Co., Ltd.")
+    }
+
+    func testColonFormatsStillParseCustomerCodeAndName() throws {
+        let importer = WindaFolderImporter()
+        let folder = try makeTempFolder()
+        let text = """
+        CUSTOMER CODE: C003
+        CUSTOMER: Example Customer Co., Ltd.
+        """
+        try text.write(to: folder.appendingPathComponent("TRK-CUSTOMER-COLON.TXT"), atomically: true, encoding: .utf8)
+
+        let result = try importer.importFiles(from: folder)
+        let row = try XCTUnwrap(result.weightSlips.first)
+        XCTAssertEqual(row.customerCode, "C003")
+        XCTAssertEqual(row.customerName, "Example Customer Co., Ltd.")
+    }
+
+    func testParseProductCodeWithoutColonFormatDoesNotCorruptProductName() throws {
+        let importer = WindaFolderImporter()
+        let folder = try makeTempFolder()
+        let text = "PRODUCT CODE P001"
+        try text.write(to: folder.appendingPathComponent("TRK-PRODUCT-CODE-NOCOLON.TXT"), atomically: true, encoding: .utf8)
+
+        let result = try importer.importFiles(from: folder)
+        let row = try XCTUnwrap(result.weightSlips.first)
+        XCTAssertEqual(row.productCode, "P001")
+        XCTAssertNotEqual(row.productName, "CODE P001")
+        XCTAssertTrue(row.productName.isEmpty)
+    }
+
+    func testColonFormatsStillParseProductCodeAndName() throws {
+        let importer = WindaFolderImporter()
+        let folder = try makeTempFolder()
+        let text = """
+        PRODUCT CODE: P001
+        PRODUCT: หินคลุก
+        """
+        try text.write(to: folder.appendingPathComponent("TRK-PRODUCT-COLON.TXT"), atomically: true, encoding: .utf8)
+
+        let result = try importer.importFiles(from: folder)
+        let row = try XCTUnwrap(result.weightSlips.first)
+        XCTAssertEqual(row.productCode, "P001")
+        XCTAssertEqual(row.productName, "หินคลุก")
+    }
+
+    func testWeightSlipMatcherHandlesDuplicateMasterKeysWithoutCrash() {
+        let slip = WeightSlipRecord(id: "1", customerCode: "C001", customerName: "", companyCode: "COMP1", productCode: "", productName: "", ticketNo: "", truckPlate: "", dateIn: "", timeIn: "", grossKg: nil, dateOut: "", timeOut: "", tareKg: nil, netKg: 1200, netTon: 1.2, sourceType: "Winda", sourceFileName: "", sourceFilePath: "", sourceRawText: "", evidenceImagePath: "", signatureImagePath: "", parserConfidence: 1, parserNote: "", isReviewed: false, reviewedAt: "", reviewerNote: "")
+        let first = CustomerMasterRecord(customerCode: "C001", companyCode: "COMP1", customerName: "ลูกค้าแรก", agencyName: "", districtName: "", customerGroup: "", billingName: "", sourceFileName: "", sourceRawText: "")
+        let duplicate = CustomerMasterRecord(customerCode: "C001", companyCode: "COMP1", customerName: "ลูกค้าซ้ำ", agencyName: "", districtName: "", customerGroup: "", billingName: "", sourceFileName: "", sourceRawText: "")
+
+        let matched = WeightSlipMatcher().match([slip], with: [first, duplicate])
+        XCTAssertEqual(matched.count, 1)
+        XCTAssertEqual(matched[0].matchedCustomerName, "ลูกค้าแรก")
+        XCTAssertEqual(matched[0].matchStatus, "matched")
+    }
+
     private func makeTempFolder() throws -> URL {
         let url = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
         try FileManager.default.createDirectory(at: url, withIntermediateDirectories: true)

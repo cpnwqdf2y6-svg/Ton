@@ -121,10 +121,18 @@ struct WindaFolderImporter {
         let ticketNo = extractField(for: ["TICKET", "เลขที่", "เลขใบชั่ง"], in: text)
         let truckPlate = extractField(for: ["ทะเบียน", "TRUCK", "PLATE"], in: text)
         let customerCode = extractField(for: ["CUSTOMER CODE", "CUSCODE", "รหัสลูกค้า"], in: text)
-        let customerName = extractField(for: ["CUSTOMER", "ลูกค้า"], in: text)
+        let customerName = extractField(
+            for: ["CUSTOMER NAME", "CUSTOMER", "ชื่อลูกค้า", "ลูกค้า"],
+            excluding: ["CUSTOMER CODE", "CUSCODE", "รหัสลูกค้า"],
+            in: text
+        )
         let companyCode = extractField(for: ["COMPANY CODE", "รหัสบริษัท"], in: text)
         let productCode = extractField(for: ["PRODUCT CODE", "รหัสสินค้า"], in: text)
-        let productName = extractField(for: ["PRODUCT", "สินค้า"], in: text)
+        let productName = extractField(
+            for: ["PRODUCT", "สินค้า"],
+            excluding: ["PRODUCT CODE", "รหัสสินค้า"],
+            in: text
+        )
         let dateIn = extractField(for: ["DATE IN", "วันที่เข้า", "วันที่"], in: text)
         let timeIn = extractField(for: ["TIME IN", "เวลาเข้า"], in: text)
         let dateOut = extractField(for: ["DATE OUT", "วันที่ออก"], in: text)
@@ -203,19 +211,39 @@ struct WindaFolderImporter {
     }
 
     private func extractField(for keywords: [String], in text: String) -> String {
+        extractField(for: keywords, excluding: [], in: text)
+    }
+
+    private func extractField(for keywords: [String], excluding blockedKeywords: [String], in text: String) -> String {
         let lines = text.components(separatedBy: .newlines)
         for line in lines {
             let upper = line.uppercased()
-            guard keywords.contains(where: { upper.contains($0.uppercased()) }) else { continue }
             if let range = line.range(of: ":") {
+                let label = String(line[..<range.lowerBound]).trimmingCharacters(in: .whitespacesAndNewlines).uppercased()
+                guard keywords.contains(where: { label.contains($0.uppercased()) }) else { continue }
+                guard !blockedKeywords.contains(where: { label.contains($0.uppercased()) }) else { continue }
                 return String(line[range.upperBound...]).trimmingCharacters(in: .whitespacesAndNewlines)
             }
-            let tokens = line.split(whereSeparator: { $0 == " " || $0 == "\t" })
-            if tokens.count > 1 {
-                return tokens.dropFirst().joined(separator: " ").trimmingCharacters(in: .whitespacesAndNewlines)
+            guard keywords.contains(where: { upper.contains($0.uppercased()) }) else { continue }
+            guard !blockedKeywords.contains(where: { upper.contains($0.uppercased()) }) else { continue }
+            if let value = stripLeadingMatchedKeyword(in: line, keywords: keywords), !value.isEmpty {
+                return value
             }
         }
         return ""
+    }
+
+    private func stripLeadingMatchedKeyword(in line: String, keywords: [String]) -> String? {
+        let trimmedLine = line.trimmingCharacters(in: .whitespacesAndNewlines)
+        let upperLine = trimmedLine.uppercased()
+        let sortedKeywords = keywords.sorted { $0.count > $1.count }
+        for keyword in sortedKeywords {
+            let upperKeyword = keyword.uppercased()
+            guard upperLine.hasPrefix(upperKeyword) else { continue }
+            let start = trimmedLine.index(trimmedLine.startIndex, offsetBy: keyword.count)
+            return String(trimmedLine[start...]).trimmingCharacters(in: .whitespacesAndNewlines)
+        }
+        return nil
     }
 
     private func extractWeightNumber(in text: String) -> Double? {
@@ -394,8 +422,9 @@ struct CustomerMasterImporter {
 
 struct WeightSlipMatcher {
     func match(_ slips: [WeightSlipRecord], with masters: [CustomerMasterRecord]) -> [WeightSlipRecord] {
-        let byCompany = Dictionary(uniqueKeysWithValues: masters.filter { !$0.companyCode.isEmpty }.map { ($0.companyCode, $0) })
-        let byCustomer = Dictionary(uniqueKeysWithValues: masters.filter { !$0.customerCode.isEmpty }.map { ($0.customerCode, $0) })
+        // If master data has duplicate keys, keep the first row as the canonical mapping.
+        let byCompany = Dictionary(masters.filter { !$0.companyCode.isEmpty }.map { ($0.companyCode, $0) }, uniquingKeysWith: { first, _ in first })
+        let byCustomer = Dictionary(masters.filter { !$0.customerCode.isEmpty }.map { ($0.customerCode, $0) }, uniquingKeysWith: { first, _ in first })
 
         return slips.map { slip in
             var out = slip
