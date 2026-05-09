@@ -1,0 +1,2 @@
+customer_code	customer_name	ticket_no	net_weight	date
+A003	เทศบาลตำบลตัวอย่าง	TK-1003	1100	1/5/2569
