@@ -19,6 +19,8 @@
 		7288DD0957E6CAE03AB89C47 /* V7StoreExtension.swift in Sources */ = {isa = PBXBuildFile; fileRef = 18A053520FDD1CBE6598D540 /* V7StoreExtension.swift */; };
 		753200A0421A693B9CFA14C2 /* TrackingService.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB2470CB3EB785CEA5B83477 /* TrackingService.swift */; };
 		825DAA6CBBA7190D7668CBF6 /* Models.swift in Sources */ = {isa = PBXBuildFile; fileRef = F7A8C0A647A92D7B91EBAFBE /* Models.swift */; };
+		86A100000000000000000001 /* WindaFolderImporter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 86A100000000000000000101 /* WindaFolderImporter.swift */; };
+		86A100000000000000000002 /* WindaFolderImporterTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 86A100000000000000000102 /* WindaFolderImporterTests.swift */; };
 		8793AB39D0089E256D96CBAD /* PrecheckView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 43232215956C3F5C5BAD5648 /* PrecheckView.swift */; };
 		8C6175E7D4401E660D1F31DF /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = B16A58646BB87EB90D038977 /* Assets.xcassets */; };
 		A5C9E903F2BC6FCEDBB67B59 /* ThanyawitCustomerApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 743B002E4AB7AE02A4722F12 /* ThanyawitCustomerApp.swift */; };
@@ -45,6 +47,9 @@
 		8555E2CB6665C4D50E33CC3D /* FormsCommandView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FormsCommandView.swift; sourceTree = "<group>"; };
 		A6136BB5B9F7F828FC6F8803 /* DashboardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardView.swift; sourceTree = "<group>"; };
 		A97C29AD63741CF438998CE6 /* ThanyawitCustomer.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = ThanyawitCustomer.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		86A100000000000000000103 /* ThanyawitCustomerTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = ThanyawitCustomerTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		86A100000000000000000101 /* WindaFolderImporter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WindaFolderImporter.swift; sourceTree = "<group>"; };
+		86A100000000000000000102 /* WindaFolderImporterTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WindaFolderImporterTests.swift; sourceTree = "<group>"; };
 		B16A58646BB87EB90D038977 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		BE931A95B0EE4B1D6E6EF2FE /* Resources/customers.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = Resources/customers.json; sourceTree = "<group>"; };
 		C3444769D6CEB87BB12188C5 /* Formatters.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Formatters.swift; sourceTree = "<group>"; };
@@ -72,8 +77,17 @@
 			isa = PBXGroup;
 			children = (
 				D2553A7ED56BB6FA7D4ED2BF /* ThanyawitCustomer */,
+				86A100000000000000000104 /* ThanyawitCustomerTests */,
 				D59F6469233080B6364F20D4 /* Products */,
 			);
+			sourceTree = "<group>";
+		};
+		86A100000000000000000104 /* ThanyawitCustomerTests */ = {
+			isa = PBXGroup;
+			children = (
+				86A100000000000000000102 /* WindaFolderImporterTests.swift */,
+			);
+			path = ThanyawitCustomerTests;
 			sourceTree = "<group>";
 		};
 		D2553A7ED56BB6FA7D4ED2BF /* ThanyawitCustomer */ = {
@@ -91,6 +105,7 @@
 				CB336B53BDFA8DCB90D79D5F /* LogoView.swift */,
 				743B002E4AB7AE02A4722F12 /* ThanyawitCustomerApp.swift */,
 				F7A8C0A647A92D7B91EBAFBE /* Models.swift */,
+				86A100000000000000000101 /* WindaFolderImporter.swift */,
 				3BB35D015355B2DDF71B267E /* CustomerStore.swift */,
 				C3444769D6CEB87BB12188C5 /* Formatters.swift */,
 				75C83417BA3B57BC68818478 /* ContentView.swift */,
@@ -109,6 +124,7 @@
 			isa = PBXGroup;
 			children = (
 				A97C29AD63741CF438998CE6 /* ThanyawitCustomer.app */,
+				86A100000000000000000103 /* ThanyawitCustomerTests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -133,6 +149,24 @@
 			productReference = A97C29AD63741CF438998CE6 /* ThanyawitCustomer.app */;
 			productType = "com.apple.product-type.application";
 		};
+		86A100000000000000000105 /* ThanyawitCustomerTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 86A100000000000000000106 /* Build configuration list for PBXNativeTarget "ThanyawitCustomerTests" */;
+			buildPhases = (
+				86A100000000000000000108 /* Sources */,
+				86A100000000000000000107 /* Frameworks */,
+				86A100000000000000000109 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				86A10000000000000000010A /* PBXTargetDependency */,
+			);
+			name = ThanyawitCustomerTests;
+			productName = ThanyawitCustomerTests;
+			productReference = 86A100000000000000000103 /* ThanyawitCustomerTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -145,6 +179,10 @@
 				TargetAttributes = {
 					42AEFBAE01D2DFD981F7DA7D = {
 						CreatedOnToolsVersion = 15.4;
+					};
+					86A100000000000000000105 = {
+						CreatedOnToolsVersion = 15.4;
+						TestTargetID = 42AEFBAE01D2DFD981F7DA7D;
 					};
 				};
 			};
@@ -163,9 +201,28 @@
 			projectRoot = "";
 			targets = (
 				42AEFBAE01D2DFD981F7DA7D /* ThanyawitCustomer */,
+				86A100000000000000000105 /* ThanyawitCustomerTests */,
 			);
 		};
 /* End PBXProject section */
+
+/* Begin PBXContainerItemProxy section */
+		86A10000000000000000010B /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 46F86FAA6BBF9AC94A7E4595 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 42AEFBAE01D2DFD981F7DA7D;
+			remoteInfo = ThanyawitCustomer;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXTargetDependency section */
+		86A10000000000000000010A /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 42AEFBAE01D2DFD981F7DA7D /* ThanyawitCustomer */;
+			targetProxy = 86A10000000000000000010B /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
 
 /* Begin PBXResourcesBuildPhase section */
 		66F8606E9F0A136E2228EBCB /* Resources */ = {
@@ -196,6 +253,7 @@
 				20C29253E87F2E5FD17CD53C /* LogoView.swift in Sources */,
 				A5C9E903F2BC6FCEDBB67B59 /* ThanyawitCustomerApp.swift in Sources */,
 				825DAA6CBBA7190D7668CBF6 /* Models.swift in Sources */,
+				86A100000000000000000001 /* WindaFolderImporter.swift in Sources */,
 				AC0BB219EBABC77A18CB13C5 /* CustomerStore.swift in Sources */,
 				62617E47B5C3E5E8BC3EC639 /* Formatters.swift in Sources */,
 				C6A5AA1937C362EFE96D3E28 /* ContentView.swift in Sources */,
@@ -207,7 +265,35 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		86A100000000000000000108 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				86A100000000000000000002 /* WindaFolderImporterTests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		86A100000000000000000107 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXResourcesBuildPhase section */
+		86A100000000000000000109 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
 
 /* Begin XCBuildConfiguration section */
 		4DC7B479A29173674AFD7BAC /* Release */ = {
@@ -378,6 +464,52 @@
 			};
 			name = Release;
 		};
+		86A10000000000000000010C /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.wongsaphat.thanyawitcustomer.v17.tests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 2;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/ThanyawitCustomer.app/ThanyawitCustomer";
+			};
+			name = Debug;
+		};
+		86A10000000000000000010D /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.wongsaphat.thanyawitcustomer.v17.tests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 2;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/ThanyawitCustomer.app/ThanyawitCustomer";
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -395,6 +527,15 @@
 			buildConfigurations = (
 				683105B965893FCC643C4ECF /* Debug */,
 				4DC7B479A29173674AFD7BAC /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		86A100000000000000000106 /* Build configuration list for PBXNativeTarget "ThanyawitCustomerTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				86A10000000000000000010C /* Debug */,
+				86A10000000000000000010D /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

@@ -3,6 +3,7 @@ import SwiftUI
 import PhotosUI
 import UIKit
 import UniformTypeIdentifiers
+import PDFKit
 
 struct BillingView: View {
     @EnvironmentObject private var store: CustomerStore
@@ -591,6 +592,24 @@ struct BillingLineView: View {
         } catch {
             slipMessage = "แนบไฟล์หลักฐานไม่สำเร็จ: \(error.localizedDescription)"
         }
+    }
+
+    private func extractTextFromPDFData(_ data: Data) -> String {
+        guard let pdf = PDFDocument(data: data), pdf.pageCount > 0 else {
+            return ""
+        }
+
+        let texts = (0..<pdf.pageCount).compactMap { index in
+            pdf.page(at: index)?.string
+        }
+        return texts.joined(separator: "\n")
+    }
+
+    private func parseBillingRowsFromPDFTableText(_ text: String) -> [String] {
+        text
+            .components(separatedBy: .newlines)
+            .map { $0.trimmingCharacters(in: CharacterSet.whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
     }
 
     private var canApproveBilling: Bool {

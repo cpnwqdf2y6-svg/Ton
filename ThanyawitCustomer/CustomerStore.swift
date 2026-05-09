@@ -29,7 +29,6 @@ final class CustomerStore: ObservableObject {
         loadCustomers()
         loadSavedBilling()
         loadMonthlyProfitRecords()
-        _ = writeEmergencyExportFiles()
     }
 
     var filteredCustomers: [Customer] {
