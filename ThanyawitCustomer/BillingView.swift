@@ -104,7 +104,7 @@ struct BillingView: View {
             }
             .padding()
 
-            WDATAImportView(
+            BillingWDATAImportPanel(
                 isImporting: isBulkSlipImporting,
                 message: bulkSlipMessage,
                 pendingRecordCount: pendingWeightSlipRecords.count,
@@ -112,8 +112,6 @@ struct BillingView: View {
                 onPickFiles: { showBulkFileImporter = true },
                 onApplyImport: applyPendingWeightSlipRecords
             )
-                .padding(.horizontal)
-                .padding(.bottom, 10)
 
             validationSummaryPanel
                 .padding(.horizontal)
