@@ -1,3 +1,4 @@
+#if canImport(SwiftUI) && canImport(PhotosUI) && canImport(UIKit) && canImport(UniformTypeIdentifiers)
 import SwiftUI
 import PhotosUI
 import UIKit
@@ -8,14 +9,17 @@ struct BillingView: View {
     @State private var billingSearchText = ""
     @State private var billingGroupFilter = "ทั้งหมด"
     @State private var billingStatusFilter = "ทั้งหมด"
-    @State private var selectedBulkSlipItems: [PhotosPickerItem] = []
-    @State private var bulkSlipResults: [BulkWeightSlipImportResult] = []
     @State private var bulkSlipMessage = ""
     @State private var isBulkSlipImporting = false
+    @State private var showBulkFileImporter = false
+    @State private var pendingWeightSlipRecords: [WeightSlipRecord] = []
+    @State private var pendingReviewNotes: [String] = []
 
     private var filteredBillingCustomers: [Customer] {
         store.customers.filter { customer in
-            let query = billingSearchText.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+            let query = billingSearchText
+                .trimmingCharacters(in: CharacterSet.whitespacesAndNewlines)
+                .lowercased()
             let searchableText = [
                 customer.customerCode,
                 customer.agencyName,
@@ -61,57 +65,6 @@ struct BillingView: View {
         }
     }
 
-    private var bulkWeightSlipImportPanel: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            HStack(alignment: .top) {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("แนบใบชั่งหลายใบ แล้วให้ระบบแยก อปท.")
-                        .font(.headline)
-                    Text("เลือกรูปใบชั่งพร้อมกันได้ เช่น 17 ใบ ระบบจะ OCR หา อปท. จากชื่อบางส่วน แล้วกรอกน้ำหนักเข้าบิลของแต่ละหน่วยงานให้")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
-
-                Spacer()
-
-                PhotosPicker(selection: $selectedBulkSlipItems, maxSelectionCount: 30, matching: .images) {
-                    Label("เลือกใบชั่งหลายใบ", systemImage: "text.viewfinder")
-                }
-                .buttonStyle(.borderedProminent)
-                .disabled(isBulkSlipImporting)
-            }
-
-            if isBulkSlipImporting {
-                ProgressView("กำลัง OCR และแยกใบชั่ง...")
-                    .font(.caption)
-            }
-
-            if !bulkSlipMessage.isEmpty {
-                Text(bulkSlipMessage)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
-
-            if !bulkSlipResults.isEmpty {
-                DisclosureGroup("ผลการแยกใบชั่งล่าสุด") {
-                    VStack(spacing: 8) {
-                        ForEach(bulkSlipResults) { result in
-                            BulkWeightSlipResultRow(result: result)
-                        }
-                    }
-                    .padding(.top, 6)
-                }
-            }
-        }
-        .padding()
-        .background(.green.opacity(0.08))
-        .clipShape(RoundedRectangle(cornerRadius: 18))
-        .overlay {
-            RoundedRectangle(cornerRadius: 18)
-                .stroke(.green.opacity(0.18))
-        }
-    }
-
     var body: some View {
         VStack(spacing: 0) {
             Form {
@@ -151,7 +104,14 @@ struct BillingView: View {
             }
             .padding()
 
-            bulkWeightSlipImportPanel
+            WDATAImportView(
+                isImporting: isBulkSlipImporting,
+                message: bulkSlipMessage,
+                pendingRecordCount: pendingWeightSlipRecords.count,
+                reviewNotes: pendingReviewNotes,
+                onPickFiles: { showBulkFileImporter = true },
+                onApplyImport: applyPendingWeightSlipRecords
+            )
                 .padding(.horizontal)
                 .padding(.bottom, 10)
 
@@ -193,72 +153,46 @@ struct BillingView: View {
             }
         }
         .navigationTitle("กรอกออกบิล")
-        .onChange(of: selectedBulkSlipItems) { _, items in
-            guard !items.isEmpty else { return }
-            Task {
-                await importBulkWeightSlips(items)
+        .fileImporter(
+            isPresented: $showBulkFileImporter,
+            allowedContentTypes: [.plainText, .commaSeparatedText, .data],
+            allowsMultipleSelection: true
+        ) { result in
+            switch result {
+            case .success(let urls):
+                Task {
+                    await importBulkFilesFromFilesApp(urls)
+                }
+            case .failure(let error):
+                bulkSlipMessage = "นำเข้าไฟล์จาก Files ไม่สำเร็จ: \(error.localizedDescription)"
             }
         }
     }
 
-    private func importBulkWeightSlips(_ items: [PhotosPickerItem]) async {
+    private func importBulkFilesFromFilesApp(_ urls: [URL]) async {
+        guard !urls.isEmpty else { return }
         isBulkSlipImporting = true
-        bulkSlipMessage = "กำลังอ่านรูป \(items.count) ใบ"
-        var imageDatas: [Data] = []
+        defer { isBulkSlipImporting = false }
 
-        for item in items {
-            if let data = try? await item.loadTransferable(type: Data.self) {
-                imageDatas.append(data)
-            }
-        }
+        let preview = WDATAImportWorkflow.preparePreview(
+            from: urls,
+            knownCustomerCodes: Set(store.customers.map { $0.customerCode.lowercased() }),
+            knownCustomerNames: Set(store.customers.map { $0.agencyName.lowercased() }),
+            existingTickets: Set(store.billing.values.map { $0.slipTicketNo.lowercased() }),
+            servicePeriod: store.servicePeriod
+        )
 
-        if imageDatas.isEmpty {
-            bulkSlipMessage = "ยังอ่านรูปใบชั่งไม่ได้ กรุณาเลือกใหม่อีกครั้ง"
-            isBulkSlipImporting = false
-            selectedBulkSlipItems = []
-            return
-        }
-
-        let results = store.importBulkWeightSlipImages(imageDatas)
-        bulkSlipResults = results
-        let successCount = results.filter(\.isSuccess).count
-        let reviewCount = results.count - successCount
-        bulkSlipMessage = "แยกสำเร็จ \(successCount)/\(results.count) ใบ" + (reviewCount > 0 ? " · รอตรวจ \(reviewCount) ใบ" : "")
-        isBulkSlipImporting = false
-        selectedBulkSlipItems = []
+        pendingWeightSlipRecords = preview.passRecords
+        pendingReviewNotes = preview.reviewNotes
+        bulkSlipMessage = preview.summaryMessage
     }
-}
 
-struct BulkWeightSlipResultRow: View {
-    let result: BulkWeightSlipImportResult
-
-    var body: some View {
-        HStack(alignment: .top, spacing: 10) {
-            Image(systemName: result.isSuccess ? "checkmark.circle.fill" : "exclamationmark.triangle.fill")
-                .foregroundStyle(result.isSuccess ? .green : .orange)
-
-            VStack(alignment: .leading, spacing: 3) {
-                Text("ใบที่ \(result.index): \(result.customerName)")
-                    .font(.caption.bold())
-                Text("น้ำหนักจากตาราง: \(result.detectedWeight > 0 ? ThaiFormat.plain(result.detectedWeight) : "-")")
-                    .font(.caption2)
-                    .foregroundStyle(.secondary)
-                Text(result.note)
-                    .font(.caption2)
-                    .foregroundStyle(.secondary)
-            }
-
-            Spacer()
-
-            Text(result.status)
-                .font(.caption2.bold())
-                .padding(.horizontal, 8)
-                .padding(.vertical, 4)
-                .background((result.isSuccess ? Color.green : Color.orange).opacity(0.16))
-                .foregroundStyle(result.isSuccess ? .green : .orange)
-                .clipShape(Capsule())
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
+    private func applyPendingWeightSlipRecords() {
+        guard !pendingWeightSlipRecords.isEmpty else { return }
+        let result = store.importWeightSlipRecords(pendingWeightSlipRecords)
+        pendingWeightSlipRecords = []
+        pendingReviewNotes = []
+        bulkSlipMessage = "Imported \(result.imported) records · Needs review \(result.review)"
     }
 }
 
@@ -727,3 +661,4 @@ struct NumberField: View {
         }
     }
 }
+#endif
